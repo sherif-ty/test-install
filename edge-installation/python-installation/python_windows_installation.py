@@ -19,18 +19,26 @@ def run_command(command):
     print(f"Standard error: {result.stderr}")
     if result.returncode == 0:
         print("Installation done successfully.")
-        subprocess.run('some_command_to_disable_tls', shell=True)
+        # Placeholder: replace with actual command if TLS disabling is needed
+        subprocess.run('echo TLS disabled (placeholder)', shell=True)
     else:
         raise RuntimeError(f"Installation failed with return code {result.returncode}")
 
-def install_windows():
-    proxy_ip = input("Enter the SOCKS proxy IP (e.g., 192.168.1.136): ")
-    leader_ip = input("Enter the Leader IP: ")
-    edge_token = input("Enter the Edge Token: ")
-    fleet_name = input("Enter the Fleet Name: ")
-    tls = input("Enable TLS? (true/false): ").lower()
+def install_windows(user_config):
+    if platform.system() != "Windows":
+        print("This script must be run in a Windows environment.")
+        return
 
-    set_proxy_environment(proxy_ip)
+    # Prompt for missing info not handled in main
+    leader_ip = input("Enter the Leader IP: ")
+    tls = input("Enable TLS? (true/false): ").strip().lower()
+
+    proxy_ip = user_config["socks_proxy_ip"]
+    edge_token = user_config["token"]
+    fleet_name = user_config["fleet"]
+
+    if user_config["use_proxy"] == "y":
+        set_proxy_environment(proxy_ip)
 
     config = {
         "For_Windows_cribl_pkg_url": "Artifacts\\Windows Package\\cribl-4.10.0-22f23292-win32-x64.msi",
@@ -50,12 +58,19 @@ def install_windows():
         f'/l*v "{config["LOG_PATH"]}"'
     )
 
-    if platform.system() == "Windows":
-        print(f"Running command: {command}")
-        thread = threading.Thread(target=run_command, args=(command,))
-        thread.start()
-    else:
-        print("This script must be run in a Windows environment.")
+    print(f"Running command: {command}")
+    thread = threading.Thread(target=run_command, args=(command,))
+    thread.start()
 
 if __name__ == "__main__":
-    install_windows()
+    # Dummy test user_config
+    test_config = {
+        "fleet": "TestFleet",
+        "token": "your_token_here",
+        "socks_proxy_ip": "192.168.1.1",
+        "socks_proxy_port": "1080",
+        "https_proxy_ip": "192.168.1.1",
+        "https_proxy_port": "8080",
+        "use_proxy": "y"
+    }
+    install_windows(test_config)
