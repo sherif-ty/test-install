@@ -1,7 +1,7 @@
 import sys
 import platform
 from python_windows_installation import install_windows
-from python_linux_installation import iinstall_linux
+from python_linux_installation import install_linux
 
 #---------------------------------Functions----------------------------------------#
 def get_user_input(prompt, default=None):

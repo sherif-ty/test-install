@@ -2,7 +2,7 @@ import os
 import subprocess
 import shutil
 
-def iinstall_linux(user_config):
+def install_linux(user_config):
     rpm_path = os.path.abspath("Artifacts/Linux Package/cribl-edge-4.10.0-linux-x64.rpm")
     cribl_user = "cribladm"
     cribl_group = "cribladm"
