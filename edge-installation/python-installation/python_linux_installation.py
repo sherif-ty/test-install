@@ -105,5 +105,8 @@ def install_linux(user_config):
         run("systemctl daemon-reexec")
         run("systemctl daemon-reload")
 
-    print("Starting Cribl as the specified user...")
-    run(f"su - {cribl_user} -c '{install_dir}/bin/cribl start'")
+    # print("Starting Cribl as the specified user...")
+    # run(f"su - {cribl_user} -c '{install_dir}/bin/cribl start'")
+    print("Restarting Cribl service using systemd...")
+    run("systemctl restart cribl.service")
+
