@@ -1,9 +1,10 @@
 import os
+import platform
 import subprocess
+import tarfile
 import shutil
 
 def install_linux(user_config):
-    rpm_path = os.path.abspath("Artifacts/Linux Package/cribl-edge-4.10.0-linux-x64.rpm")
     cribl_user = "cribladm"
     cribl_group = "cribladm"
     install_dir = "/opt/cribl"
@@ -31,6 +32,16 @@ def install_linux(user_config):
         except Exception:
             return None
 
+    arch = platform.machine()
+    if arch == "x86_64":
+        tgz_filename = "cribl-4.10.1-45136dbb-linux-x64.tgz"
+    elif arch == "aarch64" or arch == "arm64":
+        tgz_filename = "cribl-4.10.1-45136dbb-linux-arm64.tgz"
+    else:
+        raise RuntimeError(f"Unsupported architecture: {arch}")
+
+    tgz_path = os.path.abspath(f"Artifacts/Linux Package/{tgz_filename}")
+
     print("Creating Cribl user and group...")
     if shutil.which("useradd"):
         try:
@@ -43,8 +54,18 @@ def install_linux(user_config):
         run(f"groupadd {cribl_group}")
         group_id = resolve_group_id(cribl_group)
 
-    print(f"Installing RPM package from {rpm_path}...")
-    run(f"dnf install -y {rpm_path} || yum install -y {rpm_path}")
+    print(f"Extracting Cribl tarball from {tgz_path}...")
+    os.makedirs(install_dir, exist_ok=True)
+    with tarfile.open(tgz_path, "r:gz") as tar:
+        tar.extractall(path="/opt")
+
+    # Rename the extracted folder if needed
+    for name in os.listdir("/opt"):
+        if name.startswith("cribl-") and os.path.isdir(os.path.join("/opt", name)):
+            extracted_path = os.path.join("/opt", name)
+            if extracted_path != install_dir:
+                shutil.move(extracted_path, install_dir)
+            break
 
     print("Configuring Cribl instance...")
     os.makedirs(f"{install_dir}/local/_system", exist_ok=True)
@@ -65,7 +86,7 @@ def install_linux(user_config):
         f.write(f"    authToken: {token}\n")
         f.write(f"    tls:\n      disabled: {tls_disabled}\n")
         f.write(f"  group: {fleet}\n")
-        f.write(f"  tags: []\n")
+        f.write("  tags: []\n")
 
     print("Setting permissions...")
     run(f"chown -R {cribl_user}:{cribl_group} {install_dir}")
