@@ -108,5 +108,5 @@ def install_linux(user_config):
     # print("Starting Cribl as the specified user...")
     # run(f"su - {cribl_user} -c '{install_dir}/bin/cribl start'")
     print("Restarting Cribl service using systemd...")
-    run("systemctl restart cribl.service")
+    run("systemctl restart cribl-edge")
 
