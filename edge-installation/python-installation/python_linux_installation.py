@@ -40,7 +40,7 @@ def install_linux(user_config):
     else:
         raise RuntimeError(f"Unsupported architecture: {arch}")
 
-    tgz_path = os.path.abspath(f"Artifacts/Linux Package/{tgz_filename}")
+    tgz_path = os.path.abspath(f"Artifacts/Linux_Package/{tgz_filename}")
 
     print("Creating Cribl user and group...")
     if shutil.which("useradd"):
