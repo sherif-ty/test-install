@@ -32,15 +32,19 @@ def install_linux(user_config):
         except Exception:
             return None
 
-    arch = platform.machine()
+    # Detect system architecture
+    arch = platform.machine().lower()
+
+    # Map architecture to the appropriate Cribl tarball
     if arch == "x86_64":
         tgz_filename = "cribl-4.10.1-45136dbb-linux-x64.tgz"
-    elif arch == "aarch64" or arch == "arm64":
+    elif arch in ("aarch64", "arm64"):
         tgz_filename = "cribl-4.10.1-45136dbb-linux-arm64.tgz"
     else:
-        raise RuntimeError(f"Unsupported architecture: {arch}")
+        raise RuntimeError(f"Unsupported system architecture: {arch}")
 
-    tgz_path = os.path.abspath(f"Artifacts/Linux_Package/{tgz_filename}")
+    # Construct the full path to the tarball relative to current working directory
+    tgz_path = os.path.abspath("../../Artifacts/Linux_Package/" + tgz_filename)
 
     print("Creating Cribl user and group...")
     if shutil.which("useradd"):
