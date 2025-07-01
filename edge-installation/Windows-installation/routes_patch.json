@@ -1,0 +1,34 @@
+{
+    "id": "default",
+    "groups": {},
+    "comments": [],
+    "routes": [
+      {
+        "id": "cs-route1",
+        "name": "edge_node_2",
+        "final": true,
+        "disabled": false,
+        "pipeline": "node-info",
+        "description": "",
+        "clones": [],
+        "enableOutputExpression": false,
+        "filter": "__inputId=='file:CS-windows-FileSystem'",
+        "output": "CS-FRK-WG",
+        "sourceIds": [
+          "CS-windows-FileSystem"
+        ]
+      },
+      {
+        "id": "default",
+        "name": "default",
+        "final": true,
+        "disabled": false,
+        "pipeline": "main",
+        "description": "",
+        "clones": [],
+        "enableOutputExpression": false,
+        "filter": "true",
+        "output": "default"
+      }
+    ]
+}

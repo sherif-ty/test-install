@@ -76,3 +76,36 @@ distributed:
 
 $YamlContent | Set-Content -Path $InstanceFile -Encoding UTF8
 Write-Host "instance.yml written to $InstanceFile"
+
+# =========================
+# Authenticate and Push Configurations to Cribl Leader
+# =========================
+$AuthUrl = "http://localhost:9420/api/v1/auth/login"
+$Username = "admin"
+$Password = "admin"
+$CriblHost = "http://localhost:9420"
+
+try {
+    $AuthResponse = Invoke-RestMethod -Method Post -Uri $AuthUrl -Headers @{
+        "Content-Type" = "application/json"
+        "Accept" = "application/json"
+    } -Body (@{ username = $Username; password = $Password } | ConvertTo-Json)
+
+    $AuthToken = $AuthResponse.token
+    Write-Host "Auth token retrieved: $AuthToken"
+
+    $Headers = @{
+        "Authorization" = "Bearer $AuthToken"
+        "Content-Type"  = "application/json"
+    }
+
+    Invoke-RestMethod -Method Post -Uri "$CriblHost/api/v1/system/outputs" -Headers $Headers -InFile "payload.json"
+    Invoke-RestMethod -Method Post -Uri "$CriblHost/api/v1/system/inputs" -Headers $Headers -InFile "sources.json"
+    Invoke-RestMethod -Method Post -Uri "$CriblHost/api/v1/pipelines" -Headers $Headers -InFile "pipeline.json"
+    Invoke-RestMethod -Method Patch -Uri "$CriblHost/api/v1/pipelines/node-info" -Headers $Headers -InFile "pipeline_patch.json"
+    Invoke-RestMethod -Method Patch -Uri "$CriblHost/api/v1/routes/default" -Headers $Headers -InFile "routes_patch.json"
+
+    Write-Host "#### DONE ####"
+} catch {
+    Write-Error "Failed to authenticate or push configurations: $_"
+}

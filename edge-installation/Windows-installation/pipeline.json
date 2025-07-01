@@ -1,0 +1,10 @@
+{
+    "id": "node-info",
+    "conf": {
+      "output": "default",
+      "streamtags": [],
+      "groups": {},
+      "asyncFuncTimeout": 1000,
+      "functions": []
+    }
+}
