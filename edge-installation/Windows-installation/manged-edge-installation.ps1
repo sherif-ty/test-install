@@ -34,9 +34,10 @@ if ($UseProxy) {
 # =========================
 # Install Cribl MSI
 # =========================
-$MsiPath = "Artifacts\Windows Package\cribl-4.12.1-b6dd700c-win32-x64.msi"
+# $MsiPath = "Artifacts\Windows Package\cribl-4.12.1-b6dd700c-win32-x64.msi"
 $LogPath = "C:\Windows\Temp\cribl-msiexec-0000000000000.log"
 $Command = "msiexec /i `"$MsiPath`" /qn MODE=`"mode-managed-edge`" HOSTNAME=`"$LeaderIP`" PORT=`"4200`" AUTH=`"$EdgeToken`" FLEET=`"$FleetName`""
+$MsiPath = Join-Path $PSScriptRoot "Artifacts\Windows Package\cribl-4.12.1-b6dd700c-win32-x64.msi"
 
 if ($EnableTLS) {
     $Command += " TLS=`"true`""
