@@ -1,5 +1,5 @@
 {
-    "id": "CS-FRK-WG",
+    "id": "FW_TEST2",
     "type": "cribl_http",
     "url": "http://3.149.172.97",
     "compression": "gzip",

@@ -12,12 +12,10 @@
         "description": "",
         "clones": [],
         "enableOutputExpression": false,
-        "filter": "__inputId=='file:CS-windows-FileSystem'",
-        "output": "CS-FRK-WG",
-        "sourceIds": [
-          "CS-windows-FileSystem"
-        ]
-      },
+       "filter": "__inputId=='CS_windows_FileSystem'",
+	  "sourceIds": [
+          "CS_windows_FileSystem"
+	   ]      },
       {
         "id": "default",
         "name": "default",
@@ -28,7 +26,7 @@
         "clones": [],
         "enableOutputExpression": false,
         "filter": "true",
-        "output": "default"
+        "output": "FW_TEST2"
       }
     ]
 }

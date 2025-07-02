@@ -1,43 +1,52 @@
 {
-    "sources": [
-        {
-            "id": "winlog-source",
-            "type": "winlog",
-            "channels": [
-                "Application",
-                "Security",
-                "System"
-            ],
-            "readExistingEvents": true,
-            "eventFormat": "xml"
-        },
-        {
-            "id": "windows-metrics",
-            "type": "metrics",
-            "source": "perfmon",
-            "counters": [
-                "\\Processor(_Total)\\% Processor Time",
-                "\\Memory\\Available MBytes",
-                "\\LogicalDisk(_Total)\\% Free Space",
-                "\\Network Interface(*)\\Bytes Total/sec"
-            ],
-            "interval": 10
-        }
-    ],
-    "routes": [
-        {
-            "id": "default-route",
-            "pipeline": "main",
-            "enabled": true
-        }
-    ],
-    "outputs": [
-        {
-            "id": "cribl-stream-output",
-            "type": "tcpjson",
-            "host": "127.0.0.1",
-            "port": 10090,
-            "enabled": true
-        }
-    ]
+  "sources": [
+    {
+      "id": "winlog-source",
+      "type": "winlog",
+      "channels": [
+        "Application",
+        "Security",
+        "System"
+      ],
+      "readExistingEvents": true,
+      "eventFormat": "xml",
+      "enabled": true
+    },
+    {
+      "id": "windows-metrics",
+      "type": "metrics",
+      "source": "perfmon",
+      "counters": [
+        "\\Processor(_Total)\\% Processor Time",
+        "\\Memory\\Available MBytes",
+        "\\LogicalDisk(_Total)\\% Free Space",
+        "\\Network Interface(*)\\Bytes Total/sec"
+      ],
+      "interval": 10,
+      "enabled": true
+    },
+    {
+      "id": "CS_windows_FileSystem",
+      "type": "file",
+      "path": "C:\\logs\\*.log",
+      "multiline": false,
+      "enabled": true
+    }
+  ],
+  "routes": [
+    {
+      "id": "default-route",
+      "pipeline": "main",
+      "enabled": true
+    }
+  ],
+  "outputs": [
+    {
+      "id": "cribl-stream-output",
+      "type": "tcpjson",
+      "host": "127.0.0.1",
+      "port": 10090,
+      "enabled": true
+    }
+  ]
 }
