@@ -1,3 +1,23 @@
+# =========================
+# User Context Selection
+# =========================
+$IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+$runAs = Read-Host "Do you want to run this script as Administrator or Local user? (admin/local)"
+
+if ($runAs -eq "local" -and $IsAdmin) {
+    $username = Read-Host "Enter local username (e.g., .\username)"
+    $password = Read-Host "Enter password" -AsSecureString
+    $cred = New-Object System.Management.Automation.PSCredential($username, $password)
+    $scriptPath = $MyInvocation.MyCommand.Definition
+    Write-Host "Re-launching script as local user $username..."
+    Start-Process -FilePath "powershell.exe" -ArgumentList "-ExecutionPolicy Bypass -File `"$scriptPath`"" -Credential $cred -Wait
+    exit
+}
+elseif ($runAs -eq "admin" -and -not $IsAdmin) {
+    Write-Host "This script must be run as Administrator. Please right-click and choose 'Run as Administrator'." -ForegroundColor Red
+    exit
+}
+
 Write-Host "========== Starting Cribl Edge Setup ==========" -ForegroundColor Cyan
 
 # =========================
@@ -8,7 +28,7 @@ Write-Host "Proxy answer: $proxyAnswer"
 
 if ($proxyAnswer -eq "y") {
     $UseProxy = $true
-    $EnableTLS = $true  # TLS enabled when proxy is used
+    $EnableTLS = $true
     $ProxyType = Read-Host "Proxy type? (http/socks)"
     Write-Host "Proxy type selected: $ProxyType"
 
@@ -38,7 +58,7 @@ if ($proxyAnswer -eq "y") {
 } else {
     Write-Host "Proxy not enabled." -ForegroundColor Yellow
     $UseProxy = $false
-    $EnableTLS = $false  # TLS disabled when no proxy
+    $EnableTLS = $false
     $HttpProxyIP = ""
     $HttpProxyPort = ""
     $SocksProxyIP = ""
