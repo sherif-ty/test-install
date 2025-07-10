@@ -1,68 +1,70 @@
-# =========================
-# User Context Selection
-# =========================
-$IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-$runAs = Read-Host "Do you want to run this script as Administrator or Local user? (admin/local)"
-
-if ($runAs -eq "local" -and $IsAdmin) {
-    $username = Read-Host "Enter local username (e.g., .\username)"
-    $password = Read-Host "Enter password" -AsSecureString
-    $cred = New-Object System.Management.Automation.PSCredential($username, $password)
-    $scriptPath = $MyInvocation.MyCommand.Definition
-    Write-Host "Re-launching script as local user $username..."
-    Start-Process -FilePath "powershell.exe" -ArgumentList "-ExecutionPolicy Bypass -File `"$scriptPath`"" -Credential $cred -Wait
-    exit
-}
-elseif ($runAs -eq "admin" -and -not $IsAdmin) {
-    Write-Host "This script must be run as Administrator. Please right-click and choose 'Run as Administrator'." -ForegroundColor Red
-    exit
-}
+ 
 
 Write-Host "========== Starting Cribl Edge Setup ==========" -ForegroundColor Cyan
 
 # =========================
-# Ask if Using Proxy
+# Service Account Selection
 # =========================
-$proxyAnswer = Read-Host "Are you using a proxy? (y/n)"
-Write-Host "Proxy answer: $proxyAnswer"
+Write-Host ""
+Write-Host "Choose the account Cribl Edge service will run under:"
+Write-Host "[1] LocalSystem (Default)"
+Write-Host "[2] Custom Service Account (domain\\username)"
+$serviceChoice = Read-Host "Enter your choice (1 or 2)"
 
-if ($proxyAnswer -eq "y") {
-    $UseProxy = $true
-    $EnableTLS = $true
-    $ProxyType = Read-Host "Proxy type? (http/socks)"
-    Write-Host "Proxy type selected: $ProxyType"
+$CriblUsername = "LocalSystem"
+$CriblPassword = ""
 
-    if ($ProxyType -eq "http") {
+if ($serviceChoice -eq "2") {
+    $CriblUsername = Read-Host "Enter the service account username (domain\\username)"
+    $CriblPassword = Read-Host "Enter the service account password" -AsSecureString
+
+    # Convert secure string to plain text for msiexec
+    $UnsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto(
+        [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($CriblPassword)
+    )
+    Write-Host "Service account selected: $CriblUsername"
+} else {
+    Write-Host "Using LocalSystem as Cribl Edge service account."
+}
+
+# =========================
+# Proxy Configuration
+# =========================
+$UseProxy = $false
+$EnableTLS = $false
+$HttpProxyIP = ""
+$HttpProxyPort = ""
+$SocksProxyIP = ""
+$SocksProxyPort = ""
+
+Write-Host ""
+$proxyAnswer = Read-Host "Do you want to use a proxy? Choose:`n[1] HTTP/S only`n[2] HTTP/S and SOCKS`n[Enter] for No Proxy"
+
+switch ($proxyAnswer) {
+    "1" {
+        $UseProxy = $true
+        $EnableTLS = $false
         $HttpProxyIP = Read-Host "Enter HTTP Proxy IP"
         $HttpProxyPort = Read-Host "Enter HTTP Proxy Port"
-        $SocksProxyIP = ""
-        $SocksProxyPort = ""
-        Write-Host "HTTP Proxy set to: ${HttpProxyIP}:${HttpProxyPort}"
+        Write-Host "Configured HTTP proxy: $HttpProxyIP`:$HttpProxyPort"
     }
-    elseif ($ProxyType -eq "socks") {
+    "2" {
+        $UseProxy = $true
+        $EnableTLS = $true
+
+        # HTTP proxy part
+        $HttpProxyIP = Read-Host "Enter HTTP Proxy IP"
+        $HttpProxyPort = Read-Host "Enter HTTP Proxy Port"
+        Write-Host "Configured HTTP proxy: $HttpProxyIP`:$HttpProxyPort"
+
+        # SOCKS proxy part
         $SocksProxyIP = Read-Host "Enter SOCKS Proxy IP"
         $SocksProxyPort = Read-Host "Enter SOCKS Proxy Port"
-        $HttpProxyIP = ""
-        $HttpProxyPort = ""
-        Write-Host "SOCKS Proxy set to: ${SocksProxyIP}:${SocksProxyPort}"
+        Write-Host "Configured SOCKS proxy: $SocksProxyIP`:$SocksProxyPort"
     }
-    else {
-        Write-Host "Invalid proxy type entered. Proceeding without proxy." -ForegroundColor Yellow
-        $UseProxy = $false
-        $EnableTLS = $false
-        $HttpProxyIP = ""
-        $HttpProxyPort = ""
-        $SocksProxyIP = ""
-        $SocksProxyPort = ""
+    default {
+        Write-Host "No proxy will be configured." -ForegroundColor Yellow
     }
-} else {
-    Write-Host "Proxy not enabled." -ForegroundColor Yellow
-    $UseProxy = $false
-    $EnableTLS = $false
-    $HttpProxyIP = ""
-    $HttpProxyPort = ""
-    $SocksProxyIP = ""
-    $SocksProxyPort = ""
 }
 
 # =========================
@@ -74,32 +76,41 @@ $FleetName = "default_fleet"
 $MsiPath = "C:\Users\Administrator\test-install\Artifacts\Windows Package\cribl-4.12.1-b6dd700c-win32-x64.msi"
 $LogPath = "$env:WINDIR\Temp\cribl-msiexec-install.log"
 
+Write-Host ""
 Write-Host "Leader IP: $LeaderIP"
 Write-Host "Edge Token: $EdgeToken"
-Write-Host "Fleet: $FleetName"
+Write-Host "Fleet Name: $FleetName"
 Write-Host "TLS Enabled: $EnableTLS"
 Write-Host "MSI Path: $MsiPath"
 
 # =========================
-# Set Proxy Environment Variables (HTTP Only)
+# Set HTTP Proxy Environment Variables (if applicable)
 # =========================
+$criblRegPath = "HKLM:\SYSTEM\CurrentControlSet\Services\Cribl"
+
 if ($UseProxy -and $HttpProxyIP -and $HttpProxyPort) {
     $envVars = @(
         "HTTP_PROXY=http://${HttpProxyIP}:${HttpProxyPort}",
         "HTTPS_PROXY=https://${HttpProxyIP}:${HttpProxyPort}"
     )
 
-    $criblRegPath = "HKLM:\SYSTEM\CurrentControlSet\Services\Cribl"
     if (Test-Path $criblRegPath) {
-        Set-ItemProperty -Path $criblRegPath -Name Environment -Value $envVars
-        Write-Host "HTTP Proxy environment variables configured:"
+        New-ItemProperty -Path $criblRegPath -Name "Environment" -Value $envVars -PropertyType MultiString -Force | Out-Null
+        Write-Host ""
+        Write-Host "HTTP proxy environment variables set in registry:"
         $envVars | ForEach-Object { Write-Host $_ }
     } else {
         Write-Warning "Cribl registry path not found. Skipping registry proxy configuration."
     }
 } else {
-    Write-Host "No HTTP proxy environment variables applied."
+    # Remove any old value if no proxy
+    if (Test-Path $criblRegPath) {
+        Remove-ItemProperty -Path $criblRegPath -Name "Environment" -ErrorAction SilentlyContinue
+        Write-Host "Removed previous proxy settings from registry."
+    }
 }
+
+
 
 # =========================
 # Install Cribl MSI
@@ -109,6 +120,7 @@ if (-Not (Test-Path $MsiPath)) {
     exit 1
 }
 
+Write-Host ""
 Write-Host "Running Cribl Edge MSI installation..."
 
 $Arguments = @(
@@ -120,11 +132,17 @@ $Arguments = @(
     "FLEET=`"$FleetName`"",
     "AUTH=`"$EdgeToken`"",
     "TLS=`"$($EnableTLS.ToString().ToLower())`"",
-    "USERNAME=`"LocalSystem`"",
+    "USERNAME=`"$CriblUsername`"",
     "APPLICATIONROOTDIRECTORY=`"C:\Program Files\Cribl\`"",
     "/l*v", "`"$LogPath`""
 )
 
+# If custom account, append PASSWORD argument
+if ($CriblUsername -ne "LocalSystem" -and $UnsecurePassword) {
+    $Arguments += "PASSWORD=`"$UnsecurePassword`""
+}
+
+Write-Host ""
 Write-Host "MSIEXEC Arguments:"
 $Arguments | ForEach-Object { Write-Host $_ }
 
@@ -137,7 +155,9 @@ $InstanceDir = "C:\ProgramData\Cribl\local\_system"
 $InstanceFile = Join-Path $InstanceDir "instance.yml"
 
 if (-Not (Test-Path $InstanceFile)) {
+    Write-Host ""
     Write-Host "Creating instance.yml at $InstanceFile"
+
     if (-Not (Test-Path $InstanceDir)) {
         New-Item -Path $InstanceDir -ItemType Directory -Force | Out-Null
         Write-Host "Created directory: $InstanceDir"
@@ -162,18 +182,21 @@ distributed:
   group: $FleetName
 "@
 
+    Write-Host ""
     Write-Host "YAML content to write:"
     Write-Host $YamlContent
 
     $YamlContent | Set-Content -Path $InstanceFile -Encoding UTF8
     Write-Host "instance.yml written successfully."
 } else {
+    Write-Host ""
     Write-Host "instance.yml already exists — skipping creation."
 }
 
 # =========================
 # Restart Cribl Service
 # =========================
+Write-Host ""
 Write-Host "Restarting Cribl service..." -ForegroundColor Yellow
 
 try {
@@ -187,4 +210,6 @@ try {
     Write-Error "Failed to restart Cribl service: $_"
 }
 
+Write-Host ""
 Write-Host "========== Cribl Edge Setup Finished ==========" -ForegroundColor Green
+ 
