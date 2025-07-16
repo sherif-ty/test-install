@@ -189,7 +189,7 @@ distributed:
     $YamlContent | Set-Content -Path $InstanceFile -Encoding UTF8
     Write-Host "instance.yml written successfully."
 } else {
-    Write-Host "instance.yml already exists — skipping creation."
+    Write-Host "instance.yml already exists ï¿½ skipping creation."
 }
 
 # =========================
