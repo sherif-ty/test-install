@@ -3,13 +3,6 @@
 Write-Host "========== Starting Cribl Edge Setup ==========" -ForegroundColor Cyan
 
 # =========================
-# Prompt for Leader Connection Info
-# =========================
-
-$LeaderIP = Read-Host "Enter your Cribl Leader IP or hostname"
-$LeaderToken = Read-Host "Enter your Cribl Leader Edge Auth Token"
-
-# =========================
 # Service Account Selection
 # =========================
 
