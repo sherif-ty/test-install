@@ -1,5 +1,5 @@
 outputs:
-  CS_FRK_DEST:
+  test:
     systemFields:
     - cribl_pipe
     streamtags: []
@@ -32,4 +32,4 @@ outputs:
     dnsResolvePeriodSec: 600
     loadBalanceStatsPeriodSec: 300
     type: cribl_http
-    url: http://10.0.27.248:21530
+    url: http://13.48.112.70:2121

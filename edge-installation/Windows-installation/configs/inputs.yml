@@ -7,4 +7,4 @@ in_win_event_logs:
   batchSize: 500
   type: win_event_logs
   connections:
-  - output: CS_FRK_DEST
+  - output: test
