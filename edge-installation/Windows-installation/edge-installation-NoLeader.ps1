@@ -71,7 +71,7 @@ if ($proxyAnswer -eq "y") {
 # =========================
 
 $FleetName = "default_fleet"
-$MsiPath = "C:\Users\$env:USERNAME\test-install\Artifacts\Windows Package\cribl-4.12.1-b6dd700c-win32-x64.msi"
+$MsiPath = "C:\Users\$env:USERNAME\Desktop\test-install\Artifacts\Windows Package\cribl-4.12.1-b6dd700c-win32-x64.msi"
 $LogPath = "$env:WINDIR\Temp\cribl-msiexec-install.log"
 
 Write-Host ""
@@ -160,30 +160,45 @@ if (-Not (Test-Path $InstanceFile)) {
         Write-Host "Created directory: $InstanceDir"
     }
 
+    # Compute TLS and proxy values
+    $TlsDisabled = if ($EnableTLS) { "false" } else { "true" }
     $ProxyDisabled = if ($UseProxy -and $SocksProxyIP -and $SocksProxyPort) { "false" } else { "true" }
 
+    # Build proxy YAML section
+    if ($UseProxy -and $SocksProxyIP -and $SocksProxyPort) {
+        $ProxyYaml = @"
+    proxy:
+      disabled: $ProxyDisabled
+      type: 5
+      host: $SocksProxyIP
+      port: $SocksProxyPort
+"@
+    } else {
+        $ProxyYaml = @"
+    proxy:
+      disabled: true
+"@
+    }
+
+    # Build YAML file content
     $YamlContent = @"
 distributed:
   mode: managed-edge
   master:
     host: $LeaderIP
-    port: 4200
-    proxy:
-      disabled: $ProxyDisabled
-      type: 5
-      host: ${SocksProxyIP}
-      port: ${SocksProxyPort}
+    port: 4200$ProxyYaml
     authToken: $LeaderToken
     tls:
-      disabled: $(!($EnableTLS))
+      disabled: $TlsDisabled
   group: $FleetName
 "@
 
     $YamlContent | Set-Content -Path $InstanceFile -Encoding UTF8
     Write-Host "instance.yml written successfully."
 } else {
-    Write-Host "instance.yml already exists â€” skipping creation."
+    Write-Host "instance.yml already exists — skipping creation."
 }
+
 
 # =========================
 # Restart Cribl Service
@@ -231,5 +246,3 @@ if (Test-Path $ConfigSource) {
 
 Write-Host ""
 Write-Host "========== Cribl Edge Setup Finished ==========" -ForegroundColor Cyan
-
-
