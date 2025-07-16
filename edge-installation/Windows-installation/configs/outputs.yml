@@ -1,16 +1,16 @@
 outputs:
   test:
     systemFields:
-    - cribl_pipe
+      - cribl_pipe
     streamtags: []
     loadBalanced: false
     tls:
       disabled: true
     tokenTTLMinutes: 60
     excludeFields:
-    - __kube_*
-    - __metadata
-    - __winEvent
+      - __kube_*
+      - __metadata
+      - __winEvent
     compression: gzip
     concurrency: 5
     maxPayloadSizeKB: 4096
@@ -28,7 +28,7 @@ outputs:
     useRoundRobinDns: false
     excludeSelf: false
     urls:
-    - weight: 1
+      - weight: 1
     dnsResolvePeriodSec: 600
     loadBalanceStatsPeriodSec: 300
     type: cribl_http

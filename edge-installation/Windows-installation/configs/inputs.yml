@@ -1,10 +1,11 @@
-in_win_event_logs:
-  disabled: true
-  sendToRoutes: false
-  pqEnabled: false
-  streamtags: []
-  interval: 10
-  batchSize: 500
-  type: win_event_logs
-  connections:
-  - output: test
+inputs:
+  in_windows_metrics:
+    disabled: false
+    sendToRoutes: false
+    type: windows_metrics
+    persistence:
+      enable: true
+      maxDataSize: 100MB
+    connections:
+      - output: test
+        pipeline: test-pipeline
