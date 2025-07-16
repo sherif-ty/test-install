@@ -1,0 +1,10 @@
+in_win_event_logs:
+  disabled: true
+  sendToRoutes: false
+  pqEnabled: false
+  streamtags: []
+  interval: 10
+  batchSize: 500
+  type: win_event_logs
+  connections:
+  - output: CS_FRK_DEST
