@@ -203,4 +203,4 @@ if ($UseProxy -and $HttpProxyIP -and $HttpProxyPort) {
 }
 
 Write-Host ""
-Write-Host "========== Cribl Edge Setup Finished ==========" -ForegroundColor Cyan
+Write-Host "========== Cribl Edge Setup Finished ============" -ForegroundColor Cyan
