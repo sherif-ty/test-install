@@ -86,7 +86,7 @@ if ($proxyAnswer -eq "y" -or $proxyAnswer -eq "Y") {
 # Ask User for Leader IP/URL and Token
 # =========================
 $LeaderIP = Read-Host "Enter the Leader IP or URL"
-$LeaderToken = Read-Host "Enter the ONPrem Leader Token"
+$LeaderToken = Read-Host "Enter the cribl Leader Token"
 
 # =========================
 # Cribl Configuration Parameters
