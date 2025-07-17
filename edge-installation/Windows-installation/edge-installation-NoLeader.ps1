@@ -177,7 +177,7 @@ try {
 Write-Host ""
 
 # =========================
-# Run edge-configuration.ps1
+# Run edge-configuration
 # =========================
 $EdgeConfigScript = Join-Path $env:USERPROFILE "test-install\edge-installation\Windows-installation\edge-configuration.ps1"
 
@@ -193,4 +193,34 @@ if (Test-Path $EdgeConfigScript) {
     Write-Warning "edge-configuration.ps1 not found at $EdgeConfigScript"
 }
 
-Write-Host "========== Cribl Edge Setup Finished ==========" -ForegroundColor Cyan
+# =========================
+# Copy configuration files to Cribl local edge
+# =========================
+$SourceConfigPath = Join-Path $env:USERPROFILE "test-install\edge-installation\Windows-installation\configs"
+$DestConfigPath = "C:\ProgramData\Cribl\local\edge"
+
+if (Test-Path $SourceConfigPath) {
+    Write-Host "Copying Edge configuration from $SourceConfigPath to $DestConfigPath..." -ForegroundColor Cyan
+    try {
+        Copy-Item -Path "$SourceConfigPath\*" -Destination $DestConfigPath -Recurse -Force
+        Write-Host "Edge configuration copied successfully to $DestConfigPath" -ForegroundColor Green
+    } catch {
+        Write-Error "Failed to copy edge configuration: $_"
+    }
+} else {
+    Write-Warning "Source configuration path not found: $SourceConfigPath"
+}
+
+# =========================
+# Restart Cribl service
+# =========================
+Write-Host "Restarting Cribl service..." -ForegroundColor Cyan
+try {
+    Restart-Service -Name cribl -Force -ErrorAction Stop
+    Write-Host "Cribl service restarted successfully." -ForegroundColor Green
+} catch {
+    Write-Warning "Failed to restart Cribl service. Please check the service manually."
+}
+
+Write-Host "`n========== Cribl Edge Setup Finished ==========" -ForegroundColor Cyan
+
