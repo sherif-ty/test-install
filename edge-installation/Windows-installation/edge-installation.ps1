@@ -5,7 +5,6 @@ Write-Host "========== Starting Cribl Edge Setup ==========" -ForegroundColor Cy
 # =========================
 # Service Account Selection
 # =========================
-
 Write-Host ""
 Write-Host "Choose the account Cribl Edge service will run under:"
 Write-Host "[1] LocalSystem (Default)"
@@ -33,7 +32,6 @@ if ($serviceChoice -eq "2") {
 # =========================
 # Proxy Configuration
 # =========================
-
 $UseProxy = $false
 $EnableTLS = $false
 $HttpProxyIP = ""
@@ -55,6 +53,11 @@ if ($proxyAnswer -eq "y" -or $proxyAnswer -eq "Y") {
         $EnableTLS = $true
         $HttpProxyIP = Read-Host "Enter HTTP Proxy IP"
         $HttpProxyPort = Read-Host "Enter HTTP Proxy Port"
+        # Validate HTTP proxy inputs
+        if ([string]::IsNullOrWhiteSpace($HttpProxyIP) -or [string]::IsNullOrWhiteSpace($HttpProxyPort)) {
+            Write-Host "ERROR: HTTP Proxy IP and Port cannot be empty." -ForegroundColor Red
+            exit 1
+        }
         Write-Host "HTTP proxy configured: ${HttpProxyIP}:${HttpProxyPort}"
     }
     elseif ($proxyTypeAnswer -eq "2") {
@@ -64,30 +67,30 @@ if ($proxyAnswer -eq "y" -or $proxyAnswer -eq "Y") {
         $HttpProxyPort = Read-Host "Enter HTTP Proxy Port"
         $SocksProxyIP = Read-Host "Enter SOCKS Proxy IP"
         $SocksProxyPort = Read-Host "Enter SOCKS Proxy Port"
+        # Validate required proxy inputs
+        if ([string]::IsNullOrWhiteSpace($HttpProxyIP) -or [string]::IsNullOrWhiteSpace($HttpProxyPort) -or
+            [string]::IsNullOrWhiteSpace($SocksProxyIP) -or [string]::IsNullOrWhiteSpace($SocksProxyPort)) {
+            Write-Host "ERROR: Proxy IP and Port values cannot be empty." -ForegroundColor Red
+            exit 1
+        }
         Write-Host "HTTP proxy configured: ${HttpProxyIP}:${HttpProxyPort}"
         Write-Host "SOCKS proxy configured: ${SocksProxyIP}:${SocksProxyPort}"
-    }
-    else {
+    } else {
         Write-Host "No proxy selected. Proceeding without proxy..." -ForegroundColor Yellow
-        $UseProxy = $false
-        $EnableTLS = $false
     }
 } else {
     Write-Host "Proxy not enabled." -ForegroundColor Yellow
 }
 
-
 # =========================
 # Ask User for Leader IP/URL and Token
 # =========================
-
 $LeaderIP = Read-Host "Enter the Leader IP or URL"
 $LeaderToken = Read-Host "Enter the ONPrem Leader Token"
 
 # =========================
 # Cribl Configuration Parameters
 # =========================
-
 $FleetName = "default_fleet"
 $MsiPath = "C:\Users\$env:USERNAME\Desktop\test-install\Artifacts\Windows Package\cribl-4.12.1-b6dd700c-win32-x64.msi"
 $LogPath = "$env:WINDIR\Temp\cribl-msiexec-install.log"
@@ -103,7 +106,6 @@ Write-Host "MSI Path          : $MsiPath"
 # =========================
 # Install Cribl MSI
 # =========================
-
 if (-Not (Test-Path $MsiPath)) {
     Write-Host "ERROR: MSI file not found at path: $MsiPath" -ForegroundColor Red
     exit 1
@@ -136,48 +138,62 @@ $Arguments | ForEach-Object { Write-Host $_ }
 Start-Process -FilePath "msiexec.exe" -ArgumentList $Arguments -Wait -NoNewWindow
 
 # =========================
-# Write instance.yml if missing
+# Write instance.yml
 # =========================
-
 $InstanceDir = "C:\ProgramData\Cribl\local\_system"
 $InstanceFile = Join-Path $InstanceDir "instance.yml"
 
-if (-Not (Test-Path $InstanceFile)) {
-    Write-Host ""
-    Write-Host "Creating instance.yml at $InstanceFile"
+Write-Host ""
+Write-Host "Creating or updating instance.yml at $InstanceFile"
 
-    if (-Not (Test-Path $InstanceDir)) {
-        New-Item -Path $InstanceDir -ItemType Directory -Force | Out-Null
-        Write-Host "Created directory: $InstanceDir"
-    }
+if (-Not (Test-Path $InstanceDir)) {
+    New-Item -Path $InstanceDir -ItemType Directory -Force | Out-Null
+    Write-Host "Created directory: $InstanceDir"
+}
 
-    $ProxyDisabled = if ($UseProxy -and $SocksProxyIP -and $SocksProxyPort) { "false" } else { "true" }
-
-    $YamlContent = @"
+# Base YAML content
+$YamlContent = @"
 distributed:
   mode: managed-edge
   master:
     host: $LeaderIP
     port: 4200
-    proxy:
-      disabled: $ProxyDisabled
-      type: 5
-      host: ${SocksProxyIP}
-      port: ${SocksProxyPort}
     authToken: $LeaderToken
     tls:
       disabled: $(!($EnableTLS))
+    resiliency: none
   group: $FleetName
 "@
 
-    $YamlContent | Set-Content -Path $InstanceFile -Encoding UTF8
-    Write-Host "instance.yml written successfully."
+# Add SOCKS proxy settings if provided
+if ($UseProxy -and $SocksProxyIP -and $SocksProxyPort) {
+    $ProxyConfig = @"
+    proxy:
+      disabled: false
+      type: 5
+      host: $SocksProxyIP
+      port: $SocksProxyPort
+"@
+    # Insert proxy config after port to maintain YAML structure and correct indentation
+    $YamlContent = $YamlContent -replace "(\s*port:.*)", "$1`n$ProxyConfig"
+} elseif ($UseProxy) {
+    # Explicitly disable proxy if only HTTP proxy is used
+    $ProxyConfig = @"
+    proxy:
+      disabled: true
+"@
+    $YamlContent = $YamlContent -replace "(\s*port:.*)", "$1`n$ProxyConfig"
 }
+
+# Debugging output to verify proxy settings
+Write-Host "Proxy Settings: UseProxy=$UseProxy, SocksProxyIP=$SocksProxyIP, SocksProxyPort=$SocksProxyPort"
+
+$YamlContent | Set-Content -Path $InstanceFile -Encoding UTF8
+Write-Host "instance.yml written successfully."
 
 # =========================
 # Write Proxy Environment Variables (if any)
 # =========================
-
 $criblRegistryPath = "HKLM:\SYSTEM\CurrentControlSet\Services\Cribl"
 
 if ($UseProxy -and $HttpProxyIP -and $HttpProxyPort) {
@@ -193,12 +209,11 @@ if ($UseProxy -and $HttpProxyIP -and $HttpProxyPort) {
     } else {
         Write-Warning "Cribl registry path not found. Skipping proxy registry configuration."
     }
-} 
+}
 
 # =========================
 # Restart Cribl Service
 # =========================
-
 Write-Host ""
 Write-Host "Restarting Cribl service..."
 
