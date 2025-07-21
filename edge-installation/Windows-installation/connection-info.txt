@@ -1,28 +1,20 @@
-# =========================
 # Service Account
-# =========================
-USE_SERVICE_ACCOUNT=yes             # yes = use custom account, no = use LocalSystem
-SERVICE_USERNAME=domain\username    # Required if USE_SERVICE_ACCOUNT=yes
-SERVICE_PASSWORD=yourpassword       # Required if USE_SERVICE_ACCOUNT=yes
+USE_SERVICE_ACCOUNT=no             # yes = use custom account, no = use LocalSystem
+SERVICE_USERNAME=domain\username   # required if using custom account
+SERVICE_PASSWORD=yourpassword      # required if using custom account
 
-# =========================
-# Proxy Configuration
-# =========================
-USE_PROXY=yes                       # yes or no
-PROXY_TYPE=http+socks               # options: none, http, http+socks
-HTTP_PROXY_IP=192.168.1.100         # Required if PROXY_TYPE is http or http+socks
-HTTP_PROXY_PORT=8080                # Required if PROXY_TYPE is http or http+socks
-SOCKS_PROXY_IP=192.168.1.101        # Required if PROXY_TYPE is http+socks
-SOCKS_PROXY_PORT=1080               # Required if PROXY_TYPE is http+socks
+# Proxy Settings
+USE_PROXY=no                       # yes to enable proxy
+PROXY_TYPE=http+socks              # options: none, http, http+socks
+HTTP_PROXY_IP=192.168.1.100        # required for http or http+socks
+HTTP_PROXY_PORT=8080               # required for http or http+socks
+SOCKS_PROXY_IP=192.168.1.101       # required for http+socks
+SOCKS_PROXY_PORT=1080              # required for http+socks
 
-# =========================
-# Cribl Leader Configuration
-# =========================
-LEADER_IP=10.0.0.1
-LEADER_TOKEN=your-leader-token
+# Cribl Leader Info
+LEADER_IP=leaderURL  # Leader hostname or IP
+LEADER_TOKEN=TOKEn                              # Auth token for registration
 
-# =========================
 # Optional Settings
-# =========================
-FLEET_NAME=default_fleet            # Optional, default is "default_fleet"
-ENABLE_TLS=yes                      # Optional, overrides proxy-based TLS toggle (yes or no)
+FLEET_NAME=default_fleet           # fleet name (default: default_fleet)
+ENABLE_TLS=yes                     # yes to enable TLS

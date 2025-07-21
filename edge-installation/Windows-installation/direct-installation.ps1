@@ -1,28 +1,26 @@
 Write-Host "========== Starting Cribl Edge Setup ==========" -ForegroundColor Cyan
 
-# =========================
 # Load Configuration File
-# =========================
 $UserProfile = [Environment]::GetFolderPath("UserProfile")
-$ConfigPath = Join-Path $UserProfile "Cribl-Edge-Installation\edge-installation\Windows-installation\connection-info.txt"
+$ConfigPath = Join-Path $UserProfile "test-install\\edge-installation\\Windows-installation\\connection-info.txt"
 
 if (-Not (Test-Path $ConfigPath)) {
     Write-Host "ERROR: Configuration file not found at $ConfigPath" -ForegroundColor Red
     exit 1
 }
 
-$config = Get-Content $ConfigPath | Where-Object { $_ -notmatch '^#' -and $_ -match '=' } |
-    ForEach-Object {
-        $parts = $_ -split '=', 2
-        @{ Key = $parts[0].Trim(); Value = $parts[1].Trim() }
-    } | Group-Object -AsHashTable -AsString
+$config = @{}
+Get-Content $ConfigPath | ForEach-Object {
+    if ($_ -notmatch '^\s*#' -and $_ -match '=') {
+        $key, $value = $_ -split '=', 2
+        $config[$key.Trim()] = $value.Trim()
+    }
+}
 
-# =========================
 # Service Account
-# =========================
 $CriblUsername = "LocalSystem"
-$CriblPassword = ""
 $UnsecurePassword = ""
+$CriblPassword = ""
 
 if ($config["USE_SERVICE_ACCOUNT"] -match 'yes|YES') {
     $CriblUsername = $config["SERVICE_USERNAME"]
@@ -33,9 +31,7 @@ if ($config["USE_SERVICE_ACCOUNT"] -match 'yes|YES') {
     Write-Host "Using LocalSystem as Cribl Edge service account."
 }
 
-# =========================
 # Proxy Configuration
-# =========================
 $UseProxy = $false
 $EnableTLS = $false
 $HttpProxyIP = ""
@@ -47,7 +43,7 @@ if ($config["USE_PROXY"] -match 'yes|YES') {
     $UseProxy = $true
     $proxyType = $config["PROXY_TYPE"].ToLower()
 
-    if ($proxyType -eq "http" -or $proxyType -eq "http+socks") {
+    if ($proxyType -in @("http", "http+socks")) {
         $HttpProxyIP = $config["HTTP_PROXY_IP"]
         $HttpProxyPort = $config["HTTP_PROXY_PORT"]
         $EnableTLS = $true
@@ -59,40 +55,36 @@ if ($config["USE_PROXY"] -match 'yes|YES') {
     }
 }
 
-# Optional TLS override
 if ($config.ContainsKey("ENABLE_TLS")) {
     $EnableTLS = $config["ENABLE_TLS"] -match 'yes|YES'
 }
 
-# =========================
 # Cribl Configuration
-# =========================
+if (-not $config.ContainsKey("LEADER_IP") -or -not $config.ContainsKey("LEADER_TOKEN")) {
+    Write-Host "ERROR: LEADER_IP or LEADER_TOKEN missing from config." -ForegroundColor Red
+    exit 1
+}
+
 $LeaderIP = $config["LEADER_IP"]
 $LeaderToken = $config["LEADER_TOKEN"]
 $FleetName = if ($config.ContainsKey("FLEET_NAME")) { $config["FLEET_NAME"] } else { "default_fleet" }
 
-# Static paths
-$MsiPath = "C:\Users\$env:USERNAME\Desktop\test-install\Artifacts\Windows Package\cribl-4.12.1-b6dd700c-win32-x64.msi"
-$LogPath = "$env:WINDIR\Temp\cribl-msiexec-install.log"
-
-Write-Host ""
-Write-Host "Configuration:"
+Write-Host "`nConfiguration:"
 Write-Host "Leader IP/URL     : $LeaderIP"
 Write-Host "Leader Token      : $LeaderToken"
 Write-Host "Fleet             : $FleetName"
 Write-Host "TLS Enabled       : $EnableTLS"
-Write-Host "MSI Path          : $MsiPath"
 
-# =========================
 # Install Cribl MSI
-# =========================
+$MsiPath = "C:\\Users\\$env:USERNAME\\test-install\\Artifacts\\Windows Package\\cribl-4.12.1-b6dd700c-win32-x64.msi"
+$LogPath = \"$env:WINDIR\\Temp\\cribl-msiexec-install.log\"
+
 if (-Not (Test-Path $MsiPath)) {
     Write-Host "ERROR: MSI file not found at path: $MsiPath" -ForegroundColor Red
     exit 1
 }
 
-Write-Host ""
-Write-Host "Running Cribl Edge MSI installation..."
+Write-Host "`nRunning Cribl Edge MSI installation..."
 
 $Arguments = @(
     "/i", "`"$MsiPath`"",
@@ -104,7 +96,7 @@ $Arguments = @(
     "AUTH=`"$LeaderToken`"",
     "TLS=`"$($EnableTLS.ToString().ToLower())`"",
     "USERNAME=`"$CriblUsername`"",
-    "APPLICATIONROOTDIRECTORY=`"C:\Program Files\Cribl\`"",
+    "APPLICATIONROOTDIRECTORY=`"C:\\Program Files\\Cribl\\`"",
     "/l*v", "`"$LogPath`""
 )
 
@@ -112,62 +104,51 @@ if ($CriblUsername -ne "LocalSystem" -and $UnsecurePassword) {
     $Arguments += "PASSWORD=`"$UnsecurePassword`""
 }
 
-Write-Host "MSIEXEC Arguments:"
+Write-Host "`nMSIEXEC Arguments:"
 $Arguments | ForEach-Object { Write-Host $_ }
 
 Start-Process -FilePath "msiexec.exe" -ArgumentList $Arguments -Wait -NoNewWindow
 
-# =========================
 # Write instance.yml
-# =========================
-$InstanceDir = "C:\ProgramData\Cribl\local\_system"
+$InstanceDir = "C:\\ProgramData\\Cribl\\local\\_system"
 $InstanceFile = Join-Path $InstanceDir "instance.yml"
 
-Write-Host ""
-Write-Host "Creating or updating instance.yml at $InstanceFile"
+Write-Host "`nCreating or updating instance.yml at $InstanceFile"
 
 if (-Not (Test-Path $InstanceDir)) {
     New-Item -Path $InstanceDir -ItemType Directory -Force | Out-Null
     Write-Host "Created directory: $InstanceDir"
 }
 
-$YamlContent = @"
-distributed:
-  mode: managed-edge
-  master:
-    host: $LeaderIP
-    port: 4200
-    authToken: $LeaderToken
-    tls:
-      disabled: $(!($EnableTLS))
-    resiliency: none
-  group: $FleetName
-"@
+$YamlLines = @()
+$YamlLines += "distributed:"
+$YamlLines += "  mode: managed-edge"
+$YamlLines += "  master:"
+$YamlLines += "    host: $LeaderIP"
+$YamlLines += "    port: 4200"
+$YamlLines += "    authToken: $LeaderToken"
+$YamlLines += "    tls:"
+$YamlLines += "      disabled: $(!($EnableTLS).ToString().ToLower())"
+$YamlLines += "    resiliency: none"
+$YamlLines += "  group: $FleetName"
 
-if ($UseProxy -and $SocksProxyIP -and $SocksProxyPort) {
-    $ProxyConfig = @"
-    proxy:
-      disabled: false
-      type: 5
-      host: $SocksProxyIP
-      port: $SocksProxyPort
-"@
-    $YamlContent = $YamlContent -replace "(\s*port:.*)", "$1`n$ProxyConfig"
-} elseif ($UseProxy) {
-    $ProxyConfig = @"
-    proxy:
-      disabled: true
-"@
-    $YamlContent = $YamlContent -replace "(\s*port:.*)", "$1`n$ProxyConfig"
+if ($UseProxy) {
+    $YamlLines += "  proxy:"
+    if ($SocksProxyIP -and $SocksProxyPort) {
+        $YamlLines += "    disabled: false"
+        $YamlLines += "    type: 5"
+        $YamlLines += "    host: $SocksProxyIP"
+        $YamlLines += "    port: $SocksProxyPort"
+    } else {
+        $YamlLines += "    disabled: true"
+    }
 }
 
-$YamlContent | Set-Content -Path $InstanceFile -Encoding UTF8
+$YamlLines | Set-Content -Path $InstanceFile -Encoding UTF8
 Write-Host "instance.yml written successfully."
 
-# =========================
 # Write Proxy Environment Variables (if any)
-# =========================
-$criblRegistryPath = "HKLM:\SYSTEM\CurrentControlSet\Services\Cribl"
+$criblRegistryPath = "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Cribl"
 
 if ($UseProxy -and $HttpProxyIP -and $HttpProxyPort) {
     $envVars = @(
@@ -184,11 +165,8 @@ if ($UseProxy -and $HttpProxyIP -and $HttpProxyPort) {
     }
 }
 
-# =========================
 # Restart Cribl Service
-# =========================
-Write-Host ""
-Write-Host "Restarting Cribl service..."
+Write-Host "`nRestarting Cribl service..."
 
 try {
     Stop-Service -Name "cribl" -Force -ErrorAction Stop
@@ -199,5 +177,4 @@ try {
     Write-Warning "Failed to restart Cribl service: $_"
 }
 
-Write-Host ""
-Write-Host "========== Cribl Edge Setup Finished ==========" -ForegroundColor Cyan
+Write-Host "`n========== Cribl Edge Setup Finished ==========" -ForegroundColor Cyan
