@@ -1,0 +1,12 @@
+inputs:
+  in_win_event_logs:
+  disabled: false
+  sendToRoutes: false
+  pqEnabled: false
+  streamtags: []
+  interval: 10
+  batchSize: 500
+  type: win_event_logs
+  connections:
+  - output: CS_FRK_DEST
+    pipeline: node-info

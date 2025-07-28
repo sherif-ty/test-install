@@ -1,0 +1,40 @@
+outputs:
+  CS_FRK_DEST:
+    systemFields:
+    - cribl_pipe
+    streamtags: []
+    loadBalanced: true
+    tls:
+      disabled: false
+      rejectUnauthorized: true
+    tokenTTLMinutes: 60
+    excludeFields:
+    - __kube_*
+    - __metadata
+    - __winEvent
+    compression: gzip
+    concurrency: 5
+    maxPayloadSizeKB: 4096
+    maxPayloadEvents: 0
+    rejectUnauthorized: true
+    timeoutSec: 30
+    flushPeriodSec: 1
+    failedRequestLoggingMode: none
+    safeHeaders: []
+    responseRetrySettings: []
+    timeoutRetrySettings:
+      timeoutRetry: false
+    responseHonorRetryAfterHeader: false
+    onBackpressure: block
+    excludeSelf: false
+    urls:
+    - weight: 1
+      url: https://cribl.data.vip.prod.fra.tssa.vodafone.com:21530
+    - weight: 1
+      url: https://cribl.data.vip.prod.fra.tssa.vodafone.com:21531
+    - weight: 1
+      url: https://cribl.data.vip.prod.fra.tssa.vodafone.com:21532
+    dnsResolvePeriodSec: 600
+    loadBalanceStatsPeriodSec: 300
+    type: cribl_http
+    description: This destination targets RAT WG and will load balance the traffic across configured ports
