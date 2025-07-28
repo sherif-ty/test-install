@@ -1,0 +1,58 @@
+inputs:
+  cslinuxfilemonitor:
+    disabled: false
+    sendToRoutes: false
+    pqEnabled: false
+    streamtags: []
+    mode: manual
+    interval: 10
+    filenames:
+    - /var/log/syslog
+    - /var/log/auth.log
+    - /var/log/secure
+    - /var/log/messages
+    - /var/log/cron
+    - /var/log/maillog
+    - /var/log/dmesg
+    tailOnly: false
+    idleTimeout: 300
+    checkFileModTime: true
+    forceText: false
+    hashLen: 256
+    staleChannelFlushMs: 10000
+    suppressMissingPathErrors: false
+    deleteFiles: false
+    includeUnidentifiableBinary: false
+    type: file
+    path: /var/log
+    depth: 0
+    maxAgeDur: 2w
+    connections:
+    - output: CS_FRK_DEST
+      pipeline: node-info
+
+  cslinuxfilemonitor2:
+    disabled: false
+    sendToRoutes: false
+    pqEnabled: false
+    streamtags: []
+    mode: manual
+    interval: 10
+    filenames:
+    - /root/.bashrc
+    tailOnly: false
+    idleTimeout: 300
+    checkFileModTime: true
+    forceText: false
+    hashLen: 256
+    staleChannelFlushMs: 10000
+    suppressMissingPathErrors: false
+    deleteFiles: false
+    includeUnidentifiableBinary: false
+    type: file
+    path: /root
+    depth: 0
+    maxAgeDur: 2w
+    connections:
+    - output: CS_FRK_DEST
+      pipeline: node-info
