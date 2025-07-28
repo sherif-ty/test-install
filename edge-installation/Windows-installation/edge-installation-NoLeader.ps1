@@ -164,6 +164,15 @@ if ($UseProxy -and $HttpProxyIP -and $HttpProxyPort) {
     }
 }
 
+# =========================
+# Ensure destination path exists and wait for MSI setup
+# =========================
+if (-Not (Test-Path $DestConfigPath)) {
+    New-Item -Path $DestConfigPath -ItemType Directory -Force | Out-Null
+    Write-Host "Created destination config path: $DestConfigPath"
+}
+
+Start-Sleep -Seconds 5
 
 # =========================
 # Copy configuration files to Cribl local edge
@@ -180,6 +189,7 @@ if (Test-Path $SourceConfigPath) {
 } else {
     Write-Warning "Source configuration path not found: $SourceConfigPath"
 }
+
 # =========================
 # Write cribl.yml if missing
 # =========================
