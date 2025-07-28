@@ -54,7 +54,7 @@ $FleetName = "default_fleet"
 # Dynamically resolve paths
 $CurrentDir = Get-Location
 $MsiPath = Join-Path $CurrentDir "Artifacts\Windows Package\cribl-4.12.1-b6dd700c-win32-x64.msi"
-$SourceConfigPath = Join-Path $CurrentDir "edge-installation\Windows-installation\configs"
+$SourceConfigPath = Join-Path $CurrentDir "Artifacts\Cribl-edge-configurations\edge-windows"
 $DestConfigPath = "C:\ProgramData\Cribl\local\edge"
 $LogPath = "$env:WINDIR\Temp\cribl-msiexec-install.log"
 
