@@ -1,7 +1,7 @@
 # Service Account
 USE_SERVICE_ACCOUNT=no             # yes = use custom account, no = use LocalSystem
-SERVICE_USERNAME=domain\username   # required if using custom account
-SERVICE_PASSWORD=yourpassword      # required if using custom account
+SERVICE_USERNAME=sherif   # required if using custom account
+SERVICE_PASSWORD=P@$$w0rd      # required if using custom account
 
 # Proxy Settings
 USE_PROXY=no                       # yes to enable proxy
@@ -12,8 +12,8 @@ SOCKS_PROXY_IP=192.168.1.101       # required for http+socks
 SOCKS_PROXY_PORT=1080              # required for http+socks
 
 # Cribl Leader Info
-LEADER_IP=leaderURL  # Leader hostname or IP
-LEADER_TOKEN=TOKEn                              # Auth token for registration
+LEADER_IP=cribl.leader.vip.dev.fra.tssa.vodafone.com    # Leader hostname or IP
+LEADER_TOKEN=criblmaster                                     # Auth token for registration
 
 # Optional Settings
 FLEET_NAME=default_fleet           # fleet name (default: default_fleet)

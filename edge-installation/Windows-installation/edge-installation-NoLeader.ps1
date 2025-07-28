@@ -50,7 +50,12 @@ if ($proxyAnswer -match '^[Yy]$') {
 $LeaderIP = "cribl.maser"
 $EdgeToken = Read-Host "Enter the OnPrem Cribl Leader Token"
 $FleetName = "default_fleet"
-$MsiPath = "C:\Users\Administrator\test-install\Artifacts\Windows Package\cribl-4.12.1-b6dd700c-win32-x64.msi"
+
+# Dynamically resolve paths
+$CurrentDir = Get-Location
+$MsiPath = Join-Path $CurrentDir "Artifacts\Windows Package\cribl-4.12.1-b6dd700c-win32-x64.msi"
+$SourceConfigPath = Join-Path $CurrentDir "edge-installation\Windows-installation\configs"
+$DestConfigPath = "C:\ProgramData\Cribl\local\edge"
 $LogPath = "$env:WINDIR\Temp\cribl-msiexec-install.log"
 
 Write-Host ""
@@ -58,8 +63,8 @@ Write-Host "Leader IP: $LeaderIP"
 Write-Host "Fleet Name: $FleetName"
 Write-Host "TLS Enabled: $EnableTLS"
 Write-Host "MSI Path: $MsiPath"
-
-
+Write-Host "Source Config Path: $SourceConfigPath"
+Write-Host "Destination Config Path: $DestConfigPath"
 
 # =========================
 # Install Cribl MSI
@@ -132,6 +137,7 @@ distributed:
     $YamlContent | Set-Content -Path $InstanceFile -Encoding UTF8
     Write-Host "instance.yml written successfully."
 }
+
 # =========================
 # Set HTTP Proxy Environment Variables (if applicable)
 # =========================
@@ -157,48 +163,12 @@ if ($UseProxy -and $HttpProxyIP -and $HttpProxyPort) {
         Write-Host "Removed previous proxy settings from registry."
     }
 }
-# =========================
-# Restart Cribl Service
-# =========================
-Write-Host ""
-Write-Host "Restarting Cribl service..." -ForegroundColor Yellow
 
-try {
-    Write-Host "Stopping Cribl service..."
-    Stop-Service -Name "Cribl" -Force -ErrorAction Stop
-    Start-Sleep -Seconds 5
-    Write-Host "Starting Cribl service..."
-    Start-Service -Name "Cribl" -ErrorAction Stop
-    Write-Host "Cribl service restarted successfully." -ForegroundColor Green
-} catch {
-    Write-Error "Failed to restart Cribl service: $_"
-}
-
-Write-Host ""
-
-# =========================
-# Run edge-configuration
-# =========================
-$EdgeConfigScript = Join-Path $env:USERPROFILE "test-install\edge-installation\Windows-installation\edge-configuration.ps1"
-
-if (Test-Path $EdgeConfigScript) {
-    Write-Host "Running edge-configuration.ps1..." -ForegroundColor Cyan
-    try {
-        & $EdgeConfigScript
-        Write-Host "edge-configuration.ps1 completed." -ForegroundColor Green
-    } catch {
-        Write-Error "Failed to run edge-configuration.ps1: $_"
-    }
-} else {
-    Write-Warning "edge-configuration.ps1 not found at $EdgeConfigScript"
-}
 
 # =========================
 # Copy configuration files to Cribl local edge
 # =========================
-$SourceConfigPath = Join-Path $env:USERPROFILE "test-install\edge-installation\Windows-installation\configs"
-$DestConfigPath = "C:\ProgramData\Cribl\local\edge"
-
+Write-Host "Checking configuration source path..." -ForegroundColor Cyan
 if (Test-Path $SourceConfigPath) {
     Write-Host "Copying Edge configuration from $SourceConfigPath to $DestConfigPath..." -ForegroundColor Cyan
     try {
@@ -210,9 +180,76 @@ if (Test-Path $SourceConfigPath) {
 } else {
     Write-Warning "Source configuration path not found: $SourceConfigPath"
 }
+# =========================
+# Write cribl.yml if missing
+# =========================
+$CriblYmlPath = "C:\ProgramData\Cribl\local\edge\cribl.yml"
+
+if (-Not (Test-Path $CriblYmlPath)) {
+    Write-Host ""
+    Write-Host "Creating cribl.yml at $CriblYmlPath"
+
+    $CriblYmlContent = @"
+api:
+  protocol: http1.1
+  retryCount: 120
+  retrySleepSecs: 5
+  baseUrl: ""
+  disabled: true
+  listenOnPort: false
+  workerRemoteAccess: false
+  revokeOnRoleChange: true
+  authTokenTTL: 3600
+  idleSessionTTL: 3600
+  headers: {}
+  apiCache:
+    disabled: false
+  ssl:
+    disabled: true
+  host: 127.0.0.1
+  port: 9420
+  loginRateLimit: 2/second
+  ssoRateLimit: 2/second
+auth:
+  type: local
+  filter_type: email_whitelist
+system:
+  upgrade: api
+  restart: api
+  installType: standalone
+  intercom: true
+  backups:
+    backupsDirectory: \$CRIBL_STATE_DIR/backups
+    backupPersistence: 24h
+  rollback:
+    rollbackEnabled: true
+    rollbackTimeout: 30000
+    rollbackRetries: 5
+    checkInterval: 1000
+upgradeSettings:
+  upgradeSource: cdn
+  disableAutomaticUpgrade: true
+  enableLegacyEdgeUpgrade: false
+upgradeGroupSettings:
+  quantity: 100
+  isRolling: true
+  retryDelay: 1000
+  retryCount: 5
+rollback: {}
+backups: {}
+sockets: {}
+sni:
+  disableSNIRouting: false
+pii:
+  enablePiiDetection: false
+"@
+
+    $CriblYmlContent | Set-Content -Path $CriblYmlPath -Encoding UTF8
+    Write-Host "cribl.yml written successfully." -ForegroundColor Green
+}
 
 # =========================
-# Restart Cribl service
+# Final Restart
 # =========================
 Write-Host "Restarting Cribl service..." -ForegroundColor Cyan
 try {
@@ -223,4 +260,3 @@ try {
 }
 
 Write-Host "`n========== Cribl Edge Setup Finished ==========" -ForegroundColor Cyan
-
