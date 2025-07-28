@@ -258,6 +258,9 @@ pii:
     Write-Host "cribl.yml written successfully." -ForegroundColor Green
 }
 
+
+
+
 # =========================
 # Final Restart
 # =========================
@@ -268,5 +271,63 @@ try {
 } catch {
     Write-Warning "Failed to restart Cribl service. Please check the service manually."
 }
+# =========================
+# Wait for users.json to be created
+# =========================
+$UserFilePath = "C:\ProgramData\Cribl\local\cribl\auth\users.json"
+$MaxWaitSeconds = 40
+$Waited = 0
 
+while (-Not (Test-Path $UserFilePath) -and $Waited -lt $MaxWaitSeconds) {
+    Write-Host "Waiting for users.json to be created..." -ForegroundColor DarkYellow
+    Start-Sleep -Seconds 5
+    $Waited += 5
+}
+
+if (Test-Path $UserFilePath) {
+    Convert-CriblPasswdToPassword
+} else {
+    Write-Warning "users.json was not found after waiting $MaxWaitSeconds seconds. Skipping password conversion."
+}
+
+
+##change the password
+
+function Convert-CriblPasswdToPassword {
+    param (
+        [string]$UserFilePath = "C:\ProgramData\Cribl\local\cribl\auth\users.json"
+    )
+
+    if (-Not (Test-Path $UserFilePath)) {
+        Write-Error "users.json not found at $UserFilePath"
+        return
+    }
+
+    try {
+        $jsonContent = Get-Content -Path $UserFilePath -Raw | ConvertFrom-Json
+
+        $modified = $false
+        foreach ($user in $jsonContent) {
+            if ($user.passwd -and -not $user.password) {
+                $user | Add-Member -NotePropertyName "password" -NotePropertyValue $user.passwd -Force
+                $user.PSObject.Properties.Remove("passwd")
+                Write-Host "Replaced 'passwd' with 'password' for user: $($user.username)" -ForegroundColor Yellow
+                $modified = $true
+            }
+        }
+
+        if ($modified) {
+            $jsonContent | ConvertTo-Json -Compress | Set-Content -Path $UserFilePath -Encoding UTF8
+            Write-Host "users.json updated successfully." -ForegroundColor Green
+        } else {
+            Write-Host "No changes needed. All users already have 'password' or no 'passwd' field." -ForegroundColor Cyan
+        }
+    } catch {
+        Write-Error "Error processing users.json: $_"
+    }
+}
+# =========================
+# Trigger password re-hash logic
+# =========================
+Convert-CriblPasswdToPassword
 Write-Host "`n========== Cribl Edge Setup Finished ==========" -ForegroundColor Cyan
