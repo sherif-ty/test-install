@@ -16,5 +16,5 @@ LEADER_IP=leaderURL  # Leader hostname or IP
 LEADER_TOKEN=TOKEn                              # Auth token for registration
 
 # Optional Settings
-FLEET_NAME=default_fleet           # fleet name (default: default_fleet)
-ENABLE_TLS=yes                     # yes to enable TLS
+FLEET_NAME=default_fleet           # default fleet just for testing and your fleet name will send to you.
+ENABLE_TLS=yes                     # must to be enabled
