@@ -12,7 +12,7 @@ SOCKS_PROXY_IP=192.168.1.101       # required for http+socks
 SOCKS_PROXY_PORT=1080              # required for http+socks
 
 # Cribl Leader Info
-LEADER_IP=cribl.leader.vip.dev.fra.tssa.vodafone.com    # Leader hostname or IP
+LEADER_IP=cribl.leader.vip.com    # Leader hostname or IP
 LEADER_TOKEN=criblmaster                                     # Auth token for registration
 
 # Optional Settings
