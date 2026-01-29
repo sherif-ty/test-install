@@ -29,11 +29,11 @@ outputs:
     excludeSelf: false
     urls:
     - weight: 1
-      url: https://cribl.data.vip.prod.fra.tssa.vodafone.com:21533
+      url: https://cribl.data.vip.com:21533
     - weight: 1
-      url: https://cribl.data.vip.prod.fra.tssa.vodafone.com:21534
+      url: https://cribl.data.vip.com:21534
     - weight: 1
-      url: https://cribl.data.vip.prod.fra.tssa.vodafone.com:21535
+      url: https://cribl.data.vip.com:21535
     dnsResolvePeriodSec: 600
     loadBalanceStatsPeriodSec: 300
     type: cribl_http
